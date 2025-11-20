@@ -31,22 +31,22 @@ const About = () => {
 
   const team = [
     {
-      name: 'Sarah Johnson',
+      name: 'Anushree ',
       role: 'CEO & Founder',
       image: '👩‍💼',
     },
     {
-      name: 'Michael Chen',
+      name: 'Nikhitha Poojari',
       role: 'Head of Design',
       image: '👨‍🎨',
     },
     {
-      name: 'Emily Rodriguez',
+      name: 'Rathan A S',
       role: 'Logistics Director',
       image: '👩‍💻',
     },
     {
-      name: 'David Kim',
+      name: 'Chetan Kumar N K',
       role: 'Tech Lead',
       image: '👨‍💻',
     },

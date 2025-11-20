@@ -130,8 +130,8 @@ const Contact = () => {
         >
           <p className="text-gray-400 mb-4">Or reach us directly:</p>
           <div className="space-y-2">
-            <p className="text-vistaar-gold">Email: info@vistaar.com</p>
-            <p className="text-vistaar-gold">Phone: +1 (555) 123-4567</p>
+            <p className="text-vistaar-gold">Email: Vistaardesignsandlogistics@gmail.com</p>
+            <p className="text-vistaar-gold">Phone: +91 8073110116</p>
           </div>
         </motion.div>
       </div>
