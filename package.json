@@ -8,7 +8,8 @@
     "dev:backend": "cd backend && npm run dev",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "build": "cd frontend && npm run build",
-    "start": "cd backend && npm start"
+    "start": "cd backend && npm start",
+    "start:prod": "npm run build && npm start"
   },
   "keywords": ["logistics", "packaging", "design"],
   "author": "VISTAAR",
