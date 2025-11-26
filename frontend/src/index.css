@@ -22,8 +22,8 @@
     @apply bg-gradient-to-r from-vistaar-gold via-vistaar-gold-light to-vistaar-gold;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
+
 
   .gold-glow {
     text-shadow: 0 0 10px #D4AF37, 0 0 20px #D4AF37, 0 0 30px #D4AF37;

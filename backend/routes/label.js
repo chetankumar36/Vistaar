@@ -12,20 +12,7 @@ const __dirname = path.dirname(__filename)
 // Canvas module - will be loaded dynamically
 let canvasModule = null
 let canvasError = null
-
-// Try to load canvas module
-try {
-  const canvas = await import('canvas')
-  canvasModule = canvas
-  console.log('✅ Canvas library loaded successfully')
-} catch (err) {
-  canvasError = err
-  console.error('❌ Canvas library not available:', err.message)
-  console.error('📦 Please install canvas dependencies:')
-  console.error('   Windows: npm install --global windows-build-tools')
-  console.error('   macOS: xcode-select --install')
-  console.error('   Linux: sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev')
-}
+// We'll attempt to import `canvas` lazily inside request handler so startup won't fail
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -45,16 +32,28 @@ const upload = multer({ storage })
 
 router.post('/', upload.single('logo'), async (req, res) => {
   try {
-    // Check if canvas is available
-    if (!canvasModule || canvasError) {
-      return res.status(500).json({ 
-        message: 'Canvas library is not available. Please install canvas dependencies.',
-        details: 'Windows: npm install --global windows-build-tools\nmacOS: xcode-select --install\nLinux: sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev',
-        error: canvasError?.message
-      })
+    // Try to load canvas lazily (do not fail startup if it's unavailable)
+    if (!canvasModule && !canvasError) {
+      try {
+        const canvas = await import('canvas')
+        canvasModule = canvas
+        canvasError = null
+        console.log('✅ Canvas library loaded successfully')
+      } catch (err) {
+        canvasModule = null
+        canvasError = err
+        console.warn('Canvas library not available (will use fallback):', err.message)
+      }
     }
 
-    const { createCanvas, loadImage } = canvasModule
+    const useCanvas = !!canvasModule && !canvasError
+
+    if (!useCanvas) {
+      console.warn('Canvas not available; using PDFKit fallback for label generation')
+    }
+
+    const createCanvas = useCanvas ? canvasModule.createCanvas : null
+    const loadImage = useCanvas ? canvasModule.loadImage : null
 
     console.log('Label generation request received')
     console.log('Body:', req.body)
@@ -98,10 +97,103 @@ router.post('/', upload.single('logo'), async (req, res) => {
       qrCodeDataURL = null
     }
 
-    // Create canvas for label
-    console.log('Creating canvas...')
-    const canvas = createCanvas(800, 1000)
-    const ctx = canvas.getContext('2d')
+    // If canvas is not available, fall back to generating a PDF directly with PDFKit
+    if (!useCanvas) {
+      try {
+        const pdfModule = await import('pdfkit')
+        const PDFDocument = pdfModule.default || pdfModule
+
+        const previewDir = path.join(__dirname, '../uploads/previews')
+        if (!fs.existsSync(previewDir)) {
+          fs.mkdirSync(previewDir, { recursive: true })
+        }
+        const previewFilename = `preview-${Date.now()}.pdf`
+        const previewPath = path.join(previewDir, previewFilename)
+
+        const doc = new PDFDocument({ size: [800, 1000] })
+        const writeStream = fs.createWriteStream(previewPath)
+        doc.pipe(writeStream)
+
+        // Background
+        doc.rect(0, 0, 800, 1000).fill('#FFFFFF')
+
+        // Gold border
+        doc.lineWidth(8).strokeColor('#D4AF37').rect(4, 4, 792, 992).stroke()
+
+        let yPos = 50
+
+        // Logo
+        if (logoPath && fs.existsSync(logoPath)) {
+          try {
+            doc.image(logoPath, 50, yPos, { width: 100, height: 100 })
+            yPos += 130
+          } catch (e) {
+            console.error('PDF logo error:', e)
+          }
+        }
+
+        // Product name
+        doc.fillColor('#000000').fontSize(28).text(productName, 50, yPos, { width: 700 })
+        yPos += 60
+
+        // Category
+        doc.fillColor('#D4AF37').fontSize(18).text(category, 50, yPos)
+        yPos += 40
+
+        // Ingredients
+        if (ingredients) {
+          doc.fillColor('#000000').fontSize(14).text('Ingredients:', 50, yPos)
+          yPos += 20
+          doc.fontSize(12).text(ingredients, 60, yPos, { width: 680 })
+          yPos += 40
+        }
+
+        // Nutritional Info
+        if (Object.keys(nutritionData).length > 0) {
+          doc.fillColor('#000000').fontSize(14).text('Nutrition Facts:', 50, yPos)
+          yPos += 20
+          Object.entries(nutritionData).forEach(([key, value]) => {
+            doc.fontSize(12).text(`${key}: ${value}`, 60, yPos)
+            yPos += 18
+          })
+          yPos += 20
+        }
+
+        // QR code
+        if (qrCodeDataURL) {
+          try {
+            const qrBuffer = Buffer.from(qrCodeDataURL.split(',')[1], 'base64')
+            doc.image(qrBuffer, 50, yPos, { width: 150, height: 150 })
+            yPos += 180
+          } catch (err) {
+            console.error('PDF QR code error:', err)
+            yPos += 180
+          }
+        } else {
+          doc.rect(50, yPos, 150, 150).fill('#CCCCCC')
+          doc.fillColor('#666666').fontSize(14).text('QR Code', 50, yPos + 65, { width: 150, align: 'center' })
+          yPos += 180
+        }
+
+        // Footer
+        doc.fillColor('#D4AF37').fontSize(12).text('Packaged & Designed by VISTAAR', 0, yPos, { align: 'center' })
+        yPos += 20
+        doc.fillColor('#000000').fontSize(10).text(`Seller: ${sellerName}`, 0, yPos, { align: 'center' })
+
+        doc.end()
+
+        await new Promise((resolve, reject) => {
+          writeStream.on('finish', resolve)
+          writeStream.on('error', reject)
+        })
+
+        const previewUrl = `/uploads/previews/${previewFilename}`
+        return res.json({ success: true, previewUrl, message: 'Label generated (PDF fallback)' })
+      } catch (pdfErr) {
+        console.error('PDF fallback error:', pdfErr)
+        return res.status(500).json({ message: 'Failed to generate label: PDF fallback failed', error: pdfErr.message })
+      }
+    }
 
     // Background
     ctx.fillStyle = '#FFFFFF'
@@ -280,13 +372,21 @@ router.get('/download/:format', async (req, res) => {
       const fileBuffer = fs.readFileSync(previewPath)
       res.send(fileBuffer)
     } else if (format === 'pdf') {
-      // For PDF, we'll use PDFKit to generate PDF
-      const PDFDocument = require('pdfkit')
+      // For PDF, we'll use PDFKit to generate PDF (imported as ESM)
+      let PDFDocument
+      try {
+        const pdfModule = await import('pdfkit')
+        PDFDocument = pdfModule.default || pdfModule
+      } catch (importErr) {
+        console.error('PDFKit import failed:', importErr)
+        return res.status(500).json({ message: 'PDF generation library not available' })
+      }
+
       const doc = new PDFDocument({ size: [800, 1000] })
       res.setHeader('Content-Type', 'application/pdf')
       res.setHeader('Content-Disposition', `attachment; filename="vistaar-label.pdf"`)
       doc.pipe(res)
-      
+
       // Add image to PDF from file buffer
       try {
         const imageBuffer = fs.readFileSync(previewPath)

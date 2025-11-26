@@ -33,8 +33,8 @@ const Footer = () => {
           <div>
             <h4 className="text-vistaar-gold font-semibold mb-4">Contact</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>Email: info@vistaar.com</li>
-              <li>Phone: +1 (555) 123-4567</li>
+              <li>Email: Vistaardesignsandlogistics@gmail.com</li>
+              <li>Phone: +91 8073110116</li>
             </ul>
           </div>
         </div>
