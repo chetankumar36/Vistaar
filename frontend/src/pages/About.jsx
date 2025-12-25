@@ -3,28 +3,15 @@ import { motion } from 'framer-motion'
 const About = () => {
   const timeline = [
     {
-      year: '2020',
+      year: '2025',
       title: 'The Beginning',
       description: 'VISTAAR was founded with a vision to empower small creators and home businesses.',
     },
+    
+    
     {
-      year: '2021',
-      title: 'First Milestone',
-      description: 'Launched our custom packaging design service, helping 100+ creators.',
-    },
-    {
-      year: '2022',
-      title: 'Expansion',
-      description: 'Introduced smart label generation and automated nutrition fact creation.',
-    },
-    {
-      year: '2023',
-      title: 'Logistics Integration',
-      description: 'Added end-to-end logistics and delivery support for our clients.',
-    },
-    {
-      year: '2024',
-      title: 'Today',
+      year: '2025',
+      title: 'Aim',
       description: 'Serving thousands of creators with premium packaging and logistics solutions.',
     },
   ]
@@ -38,12 +25,12 @@ const About = () => {
     {
       name: 'Nikhitha Poojari',
       role: 'Head of Design',
-      image: '👨‍🎨',
+      image: '👩‍💻',
     },
     {
       name: 'Rathan A S',
       role: 'Logistics Director',
-      image: '👩‍💻',
+      image: '👨‍🎨',
     },
     {
       name: 'Chetan Kumar N K',
